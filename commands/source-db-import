@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+## Import database from a .sql file
+##
+## Usage: fin db-import [site] [--refresh]
+##
+## site - either ech and echd. Defaults to ech
+## --refresh - force dump download even if one exists locally
+##
+## Examples:
+##
+## fin db-import
+
+set -e  # Abort if anything fails
+#set -x  # Echo commands
+
+cd "${PROJECT_ROOT}"
+
+local_dump_file=".docksal/database/migrate.sql"
+
+# If we still don't have a dump here, show an error message and exit
+if [[ ! -f "$local_dump_file" ]]; then
+	echo "Something went wrong"
+	echo "Please download and put the source database dump (.sql) in ${local_dump_file}"
+	exit 1
+fi
+
+# Import database
+echo "Using ${local_dump_file}"
+fin db cli "CREATE DATABASE migrate;"
+fin db import --progress --db=migrate --db-user=root --db-password=root "$local_dump_file" -y

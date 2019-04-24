@@ -1,0 +1,35 @@
+#!/bin/bash
+
+## Install project dependencies.
+
+echo -e "Running ${green}Composer${NC}..."
+cd ${DOCROOT_PATH}
+composer install
+
+# Find npm package files in all themes.
+echo -e "Running ${green}NPM${NC}..."
+
+# List of themes to exclude from processing.
+THEME_EXCLUDE=('seven' 'bartik')
+THEME_PATH="${DOCROOT_PATH}/sites/all/themes"
+THEME_COUNT=0
+
+for DIR in $(find ${THEME_PATH} -maxdepth 2 -name "package.json" -exec dirname {} \;)
+do
+	local THEME_NAME=$(echo ${DIR##*/})
+	local MATCH=$(echo "${THEME_EXCLUDE[@]:0}" | grep -o $THEME_NAME)
+
+	# Process if actual directory and not excluded.
+	if [[ -d $DIR ]] && [[ -z $MATCH ]]; then
+		THEME_NAME=$(echo ${DIR##*/})
+		echo -e "Processing... ${green}${THEME_NAME}${NC}"
+		cd ${THEME_PATH}/${THEME_NAME}
+		npm install --silent
+		THEME_COUNT=1
+	fi
+done
+
+# Notify if no packages available.
+if [[ $THEME_COUNT == 0 ]] ; then
+	echo -e "No ${green}package.json${NC} files were found..."
+fi

@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+
+## Import database from a .sql file
+##
+## Usage: fin db-import [site] [--refresh]
+##
+## site - either ech and echd. Defaults to ech
+## --refresh - force dump download even if one exists locally
+##
+## Examples:
+##
+## fin db-import
+
+set -e  # Abort if anything fails
+#set -x  # Echo commands
+
+cd "${PROJECT_ROOT}"
+
+local_alias=$DRUSH_LOCAL
+local_dump_file=".docksal/database/db.sql"
+remote_alias=$DRUSH_DEV
+remote_backup_path="/home/${ACQUIA_SITE}/dev/backups/*${ACQUIA_SITE}*.gz"
+
+# Drop local dump if requested
+[[ "${2}" == "--refresh" ]] && [[ -f "$local_dump_file" ]] && rm -f "$local_dump_file"
+
+# Check for gzip dump.
+if [[ -f "${local_dump_file}.gz" ]]; then
+	echo -e "Extracting database from ${green}${local_dump_file}.gz${NC}"
+	gunzip -dq ${local_dump_file}.gz && rm -f ${local_dump_file}.gz
+fi
+
+# Download database dump if not present locally
+if [[ ! -f "$local_dump_file" ]]; then
+	echo "No database dump found locally. Pulling the latest one from ${remote_alias}..."
+	latest_db_dump=$(fin drush ${remote_alias} ssh "ls -t1 ${remote_backup_path} | head -n1" | tr -d '\r\n')
+	fin drush -y rsync ${remote_alias}:${latest_db_dump} ${local_dump_file}.gz
+	gzip -dq ${local_dump_file}.gz
+fi
+
+# If we still don't have a dump here, show an error message and exit
+if [[ ! -f "$local_dump_file" ]]; then
+	echo "Something went wrong"
+	echo "Please download and put the database dump (.sql) in ${local_dump_file}"
+	exit 1
+fi
+
+# Import database
+echo "Using ${local_dump_file}"
+fin db import --progress "$local_dump_file"
+
+# Sanitize database
+fin drush ${DRUSH_LOCAL} sql-sanitize -y

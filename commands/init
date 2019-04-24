@@ -1,0 +1,44 @@
+#!/bin/bash
+
+## Variables
+LOCAL_SETTINGS_TEMPLATE="${PROJECT_ROOT}/docroot/sites/default/default.settings.php"
+LOCAL_SETTINGS_FILE="${PROJECT_ROOT}/docroot/sites/default/settings.local.php"
+## End Variables
+
+# Start the containers
+fin project start
+
+# Copy the local settings file.
+echo -e "Checking for ${yellow}settings.local.php${NC} file..."
+if [[ ! -f $LOCAL_SETTINGS_FILE ]]; then
+	echo_red "Missing local settings, generating new file..."
+	cp $LOCAL_SETTINGS_TEMPLATE $LOCAL_SETTINGS_FILE
+fi
+
+# Install Composer and Theme dependencies.
+echo "Running: ${yellow}fin install-dependencies${NC}"
+fin install-dependencies
+
+# Import the database.
+echo "Running: ${yellow}fin db-import${NC}"
+fin db-import
+
+# Reset path to docroot.
+cd $SITE_PATH
+
+# Run updates and import configs
+echo "Running database updates" # and feature reverts."
+fin drush ${DRUSH_LOCAL} updatedb -y
+
+# Install dev support.
+fin dev
+
+# Clear caches.
+echo "Clear Drupal cache."
+fin drush ${DRUSH_LOCAL} cc all
+
+echo "Login URL: $(fin drush -l ${VIRTUAL_HOST} uli)"
+
+# Import legacy database for migrations
+#echo "Importing source database."
+#fin source-db-import

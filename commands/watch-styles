@@ -1,0 +1,19 @@
+#!/bin/bash
+
+THEME_PATH="${PROJECT_ROOT}/docroot/themes/THEME_NAME"
+
+cd ${THEME_PATH}
+
+if [[ ! -d node_modules ]]
+then
+  npm install
+fi
+
+npm run install-pattern-lab
+
+if [[ ! -d node_modules ]]
+then
+  fin theme-build
+fi
+
+./node_modules/.bin/gulp

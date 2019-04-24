@@ -1,0 +1,31 @@
+#!/bin/bash
+# Install helpful devel modules.
+
+echo -e "Enabling modules: ${green}stage_file_proxy, devel, adminimal_admin_menu${NC}"
+fin drush ${DRUSH_LOCAL} en stage_file_proxy devel adminimal_admin_menu -y
+
+# Disable Shield locally.
+echo -e "Disabling modules: ${red}shield, securepages${NC}"
+fin drush ${DRUSH_LOCAL} dis shield securepages -y
+
+# Adding Drush plugins.
+DRUSH_PLUGIN_PATHS=("registry_rebuild-7.x-2.5.tar.gz" "drupal_audit-7.x-1.0-beta2.tar.gz" "site_audit-7.x-1.16.tar.gz" "cacheaudit-7.x-1.1.tar.gz")
+
+# Create drush commands dir.
+mkdir -p ${PROJECT_ROOT}/drush/commands
+cd ${PROJECT_ROOT}/drush/commands
+
+# Loop through, install plugins.
+for PLUGIN in "${DRUSH_PLUGIN_PATHS[@]}"
+do
+	PLUGIN_URL="https://ftp.drupal.org/files/projects/${PLUGIN}"
+	wget -c $PLUGIN_URL -O - | tar -xz
+done
+
+# Clear drush cache for new plugins.
+echo -e "Clearing ${green}drush${NC} cache..."
+fin drush ${DRUSH_LOCAL} cc drush
+
+# Run registry rebuild.
+echo -e "Running ${green}registry_rebuild${NC}..."
+fin drush ${DRUSH_LOCAL} rr --fire-bazooka
