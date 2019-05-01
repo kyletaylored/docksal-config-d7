@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Check latest LTS
+echo -e "Installing latest LTS: ${green}(Carbon)${NC}..."
+fin exec nvm install --lts=dubnium
+fin exec nvm alias default lts/dubnium
+
+# Downgrade to Node v6
+# Boron is Node v6 LTS (6.17.1)
+echo -e "Adding Node v6 LTS ${green}(Boron)${NC}..."
+fin exec nvm install --lts=boron
+fin exec nvm alias boron lts/boron
+
+# Check node version
+echo -e "Checking node version..."
+fin exec node -v
